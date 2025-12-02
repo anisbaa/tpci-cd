@@ -17,4 +17,4 @@ databases:
   - name: tp-database
     plan: free
     databaseName: mydb
-    user: postgres
+    user: app_user
