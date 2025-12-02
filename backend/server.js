@@ -8,13 +8,21 @@ const PORT = process.env.PORT || 3000;
 
 // PostgreSQL connection with retry logic
 const createPool = () => {
-  return new Pool({
-    user: process.env.DB_USER || "postgres",
-    host: process.env.DB_HOST || "db",
-    database: process.env.DB_NAME || "mydb",
-    password: process.env.DB_PASSWORD || "password",
-    port: process.env.DB_PORT || 5432,
-  });
+  const config = process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false, // Required for Render's self-signed certificates
+        },
+      }
+    : {
+        user: process.env.DB_USER || "postgres",
+        host: process.env.DB_HOST || "db",
+        database: process.env.DB_NAME || "mydb",
+        password: process.env.DB_PASSWORD || "password",
+        port: process.env.DB_PORT || 5432,
+      };
+  return new Pool(config);
 };
 
 let pool = createPool();
@@ -24,8 +32,7 @@ app.use(cors({
   origin: [
     'http://localhost:8080',
     'http://127.0.0.1:8080',
-    'http://localhost:*',
-    'http://frontend'
+    'https://anisbaa.github.io' // Allow GitHub Pages
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type']
