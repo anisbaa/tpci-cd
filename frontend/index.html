@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docker App with PostgreSQL</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🐳 Docker Compose App</h1>
+    <p class="subtitle">Frontend + Backend + PostgreSQL</p>
+    
+    <div class="controls">
+      <button onclick="fetchData()">Test Backend Connection</button>
+      <button onclick="checkHealth()">Check Database Health</button>
+      <button onclick="loadMessages()">Load Messages</button>
+    </div>
+
+    <div class="message-form">
+      <h3>Add New Message</h3>
+      <input type="text" id="messageInput" placeholder="Enter your message...">
+      <button onclick="addMessage()">Add Message</button>
+    </div>
+
+    <div id="result" class="result">Click a button to start...</div>
+    <div id="messages" class="messages"></div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+
+    async function fetchData() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<div class="loading">Loading...</div>';
+
+      try {
+        const response = await fetch(`${API_BASE}`);
+        const data = await response.json();
+        
+        resultDiv.innerHTML = `
+          <div class="success">
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+            <p>✅ Backend connection successful!</p>
+          </div>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="error">
+            <p>❌ Error: ${error.message}</p>
+            <p>Check if backend is running on port 3000</p>
+          </div>
+        `;
+      }
+    }
+
+    async function checkHealth() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<div class="loading">Checking database health...</div>';
+
+      try {
+        const response = await fetch(`${API_BASE}/health`);
+        const data = await response.json();
+        
+        if (data.success) {
+          resultDiv.innerHTML = `
+            <div class="success">
+              <pre>${JSON.stringify(data, null, 2)}</pre>
+              <p>✅ Database connection healthy!</p>
+            </div>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <div class="error">
+              <pre>${JSON.stringify(data, null, 2)}</pre>
+              <p>❌ Database connection failed</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="error">
+            <p>❌ Error: ${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    async function loadMessages() {
+      const messagesDiv = document.getElementById('messages');
+      messagesDiv.innerHTML = '<div class="loading">Loading messages...</div>';
+
+      try {
+        const response = await fetch(`${API_BASE}/messages`);
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+          messagesDiv.innerHTML = `
+            <h3>📨 Messages (${data.data.length})</h3>
+            ${data.data.map(msg => `
+              <div class="message-item">
+                <div class="message-content">${msg.content}</div>
+                <div class="message-time">${new Date(msg.created_at).toLocaleString()}</div>
+              </div>
+            `).join('')}
+          `;
+        } else {
+          messagesDiv.innerHTML = '<div class="info">No messages found. Add some messages!</div>';
+        }
+      } catch (error) {
+        messagesDiv.innerHTML = `
+          <div class="error">
+            <p>❌ Error loading messages: ${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    async function addMessage() {
+      const input = document.getElementById('messageInput');
+      const content = input.value.trim();
+      
+      if (!content) {
+        alert('Please enter a message');
+        return;
+      }
+
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<div class="loading">Adding message...</div>';
+
+      try {
+        const response = await fetch(`${API_BASE}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          resultDiv.innerHTML = `
+            <div class="success">
+              <p>✅ Message added successfully!</p>
+            </div>
+          `;
+          input.value = '';
+          loadMessages(); // Reload messages
+        } else {
+          resultDiv.innerHTML = `
+            <div class="error">
+              <p>❌ Error: ${data.error}</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="error">
+            <p>❌ Error: ${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    // Auto-load messages on page load
+    setTimeout(loadMessages, 500);
+  </script>
+</body>
+</html>
